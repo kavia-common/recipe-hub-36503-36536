@@ -7,8 +7,25 @@ import { authEvents } from '../state/auth';
  * - Base URL from REACT_APP_API_BASE (defaults to http://localhost:3001)
  * - Authorization header when token exists
  * - 401 interceptor to trigger logout
+ * Backend expectations:
+ * - CORS must include http://localhost:3000 (the dev frontend)
+ * - Static media is served at /media, uploads at POST /media/upload
  */
 const baseURL = process.env.REACT_APP_API_BASE || 'http://localhost:3001';
+
+// Helper: ensure a media path becomes an absolute URL using API base
+function toAbsoluteUrlMaybe(urlOrPath) {
+  if (!urlOrPath) return urlOrPath;
+  try {
+    // Already absolute
+    const u = new URL(urlOrPath);
+    return u.toString();
+  } catch {
+    // Relative path; prefix with baseURL (ensures /media/... works)
+    const normalized = String(urlOrPath).startsWith('/') ? urlOrPath : `/${urlOrPath}`;
+    return `${baseURL.replace(/\/+$/,'')}${normalized}`;
+  }
+}
 
 export const api = axios.create({
   baseURL,
@@ -43,9 +60,9 @@ api.interceptors.response.use(
 function toRecipeCreateOrUpdate(payload) {
   // Frontend form fields -> backend schema:
   // title (string)
-  // description (string | null) - we map from instructions textarea for now
-  // servings (int | null) - not provided
-  // prep_time_minutes / cook_time_minutes (int | null) - we map form.time to prep_time_minutes
+  // description (string | null) - map from instructions textarea for now
+  // servings (int | null)
+  // prep_time_minutes / cook_time_minutes (int | null) - map form.time to prep_time_minutes
   // ingredients: array of IngredientCreate { name, quantity?, unit?, position }
   // steps: array of StepCreate { instruction, position }
   // tags: array of TagCreate { name }
@@ -64,9 +81,8 @@ function toRecipeCreateOrUpdate(payload) {
         .map((s) => s.trim())
         .filter(Boolean);
 
-  const mediaAssets = payload.image_url
-    ? [{ url: payload.image_url, media_type: 'image', position: 0 }]
-    : [];
+  const mediaUrl = payload.image_url ? toAbsoluteUrlMaybe(payload.image_url) : null;
+  const mediaAssets = mediaUrl ? [{ url: mediaUrl, media_type: 'image', position: 0 }] : [];
 
   return {
     title: payload.title,
@@ -123,6 +139,14 @@ export const RecipeAPI = {
   /** Get single recipe by id */
   async get(id) {
     const { data } = await api.get(`/recipes/${id}`);
+    // Normalize media URLs to absolute for rendering if necessary
+    if (data && Array.isArray(data.media_assets)) {
+      data.media_assets = data.media_assets.map((m) => ({
+        ...m,
+        url: toAbsoluteUrlMaybe(m.url)
+      }));
+    }
+    if (data && data.image_url) data.image_url = toAbsoluteUrlMaybe(data.image_url);
     return data;
   },
   /** Create or update recipe using backend schema mapping */
@@ -143,10 +167,12 @@ export const RecipeAPI = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     // Normalize return shape to { url }
-    if (data?.url) return data;
-    if (typeof data === 'string') return { url: data };
-    if (data?.location) return { url: data.location };
-    if (data?.path) return { url: data.path };
-    return data;
+    let url = null;
+    if (data?.url) url = data.url;
+    else if (typeof data === 'string') url = data;
+    else if (data?.location) url = data.location;
+    else if (data?.path) url = data.path;
+
+    return { url: toAbsoluteUrlMaybe(url) };
   }
 };

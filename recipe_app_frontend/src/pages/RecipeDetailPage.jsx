@@ -35,7 +35,15 @@ export default function RecipeDetailPage() {
   if (loading) return <div className="container"><div className="card">Loading...</div></div>;
   if (!recipe) return <div className="container"><div className="card">Recipe not found.</div></div>;
 
-  const coverUrl = recipe.media_assets?.[0]?.url || recipe.image_url || 'https://picsum.photos/800/400';
+  const toAbsolute = (u) => {
+    if (!u) return u;
+    try { return new URL(u).toString(); } catch {
+      const base = (process.env.REACT_APP_API_BASE || 'http://localhost:3001').replace(/\/+$/,'');
+      const normalized = String(u).startsWith('/') ? u : `/${u}`;
+      return `${base}${normalized}`;
+    }
+  };
+  const coverUrl = toAbsolute(recipe.media_assets?.[0]?.url || recipe.image_url) || 'https://picsum.photos/800/400';
   const totalTime = (recipe.prep_time_minutes || 0) + (recipe.cook_time_minutes || 0);
 
   return (
