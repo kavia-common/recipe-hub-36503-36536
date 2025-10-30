@@ -11,7 +11,10 @@ This project provides a minimal React template with a clean, modern UI and minim
 ## Environment
 
 - Frontend reads API base URL from `REACT_APP_API_BASE` (defaults to `http://localhost:3001`).
-- Backend CORS must include `http://localhost:3000` during development.
+- In preview environments, set `REACT_APP_API_BASE` to the backend preview URL (https, non-localhost). See `.env.example`.
+- Backend CORS must include the frontend origin:
+  - For local dev: `http://localhost:3000`
+  - For preview: set `CORS_ORIGINS` or `FRONTEND_ORIGIN` to your frontend preview URL
 - Backend serves media under `/media` and accepts uploads at `/media/upload`.
 - Relative media URLs from the backend are automatically normalized to absolute using `REACT_APP_API_BASE`.
 
@@ -22,6 +25,14 @@ REACT_APP_FRONTEND_URL=http://localhost:3000
 ```
 
 See `.env.example` in this folder for the complete list of supported env vars.
+
+## Troubleshooting 502 (Bad Gateway)
+
+If you see a 502 in the frontend preview:
+1. Verify requests in the browser Network tab are targeting the correct backend base. The app uses `REACT_APP_API_BASE` (current: process.env at build time).
+2. If the app origin is not localhost but API base is `http://localhost:3001`, update `REACT_APP_API_BASE` to the backend preview URL (https).
+3. Ensure backend CORS allows your frontend origin by setting `CORS_ORIGINS` or `FRONTEND_ORIGIN` accordingly.
+4. Check backend health at GET `/` and ensure `/media` is accessible.
 
 ## Getting Started
 

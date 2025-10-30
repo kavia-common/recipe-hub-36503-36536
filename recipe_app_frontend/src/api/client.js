@@ -13,6 +13,25 @@ import { authEvents } from '../state/auth';
  */
 const baseURL = process.env.REACT_APP_API_BASE || 'http://localhost:3001';
 
+// Dev/preview diagnostic: warn if using localhost API base on a non-localhost origin (likely misconfig causing 502)
+try {
+  const isBrowser = typeof window !== 'undefined' && window?.location;
+  if (isBrowser) {
+    const origin = window.location.origin || '';
+    const isLocalhostOrigin = /localhost|127\.0\.0\.1/i.test(origin);
+    const isLocalhostApi = /localhost|127\.0\.0\.1/i.test(baseURL);
+    if (!isLocalhostOrigin && isLocalhostApi) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[RecipeHub] REACT_APP_API_BASE points to localhost but app is running on a non-localhost origin:',
+        { origin, baseURL }
+      );
+    }
+  }
+} catch {
+  // ignore
+}
+
 // Helper: ensure a media path becomes an absolute URL using API base
 function toAbsoluteUrlMaybe(urlOrPath) {
   if (!urlOrPath) return urlOrPath;
