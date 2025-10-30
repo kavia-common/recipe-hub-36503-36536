@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 export default function RecipeCard({ recipe }) {
-  const cover = recipe?.image_url || recipe?.image || '';
+  const cover = recipe?.media_assets?.[0]?.url || recipe?.image_url || recipe?.image || '';
   return (
     <div className="card">
       <Link to={`/recipes/${recipe.id}`}>

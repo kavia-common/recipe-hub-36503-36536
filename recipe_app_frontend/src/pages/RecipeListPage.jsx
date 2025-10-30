@@ -15,9 +15,14 @@ export default function RecipeListPage() {
   const fetchList = async () => {
     setLoading(true);
     try {
-      const params = { q: q || undefined, difficulty: filters.difficulty || undefined, tag: filters.tag || undefined };
+      const params = {
+        q: q || undefined,
+        tag: filters.tag || undefined,
+        // backend supports page and page_size; keep defaults
+      };
       const data = await RecipeAPI.list(params);
-      setRecipes(data?.items || data || []);
+      // Backend returns array of RecipeRead
+      setRecipes(Array.isArray(data) ? data : (data?.items || []));
     } catch {
       // silently ignore for now
     } finally {

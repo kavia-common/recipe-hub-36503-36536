@@ -43,9 +43,20 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const data = await AuthAPI.login({ email, password });
-      // Expect { access_token, user }
-      setToken(data.access_token || data.token);
-      setUser(data.user || null);
+      // Expect { access_token, token_type }
+      const tok = data.access_token || data.token;
+      if (tok) setToken(tok);
+      // Try to fetch current user profile
+      try {
+        const profile = await AuthAPI.me();
+        setUser({
+          id: profile.id,
+          email: profile.email,
+          name: profile.full_name || profile.name || profile.email
+        });
+      } catch {
+        setUser({ email, name: email });
+      }
       return true;
     } catch (e) {
       setError(e?.response?.data?.detail || 'Login failed');
@@ -59,12 +70,10 @@ export function AuthProvider({ children }) {
     setError(null);
     setLoading(true);
     try {
-      const data = await AuthAPI.register(payload);
-      // Auto login if returned token
-      if (data?.access_token || data?.token) {
-        setToken(data.access_token || data.token);
-        setUser(data.user || { email: payload.email, name: payload.name });
-      }
+      // Backend returns created user; no token. Follow-up login to obtain token.
+      await AuthAPI.register(payload);
+      // Auto-login
+      await login(payload.email, payload.password);
       return true;
     } catch (e) {
       setError(e?.response?.data?.detail || 'Registration failed');

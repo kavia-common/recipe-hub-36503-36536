@@ -11,10 +11,10 @@ export default function RecipeEditorPage() {
   const [form, setForm] = useState({
     title: '',
     time: '',
-    difficulty: 'Easy',
     image_url: '',
     ingredients: [],
-    instructions: ''
+    instructions: '',
+    tags: []
   });
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(!id);
@@ -27,11 +27,19 @@ export default function RecipeEditorPage() {
         const data = await RecipeAPI.get(id);
         setForm({
           title: data.title || '',
-          time: data.time || '',
-          difficulty: data.difficulty || 'Easy',
-          image_url: data.image_url || '',
-          ingredients: data.ingredients || [],
-          instructions: data.instructions || data.description || ''
+          time: data.prep_time_minutes || '',
+          image_url: (data.media_assets && data.media_assets[0]?.url) || data.image_url || '',
+          ingredients: Array.isArray(data.ingredients)
+            ? data.ingredients.map((i) => (typeof i === 'string' ? i : i.name)).filter(Boolean)
+            : [],
+          instructions: Array.isArray(data.steps)
+            ? data.steps
+                .slice()
+                .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                .map((s) => s.instruction)
+                .join('\n')
+            : (data.description || ''),
+          tags: Array.isArray(data.tags) ? data.tags.map((t) => t.name || t) : []
         });
       } catch {
         // ignore
@@ -85,12 +93,13 @@ export default function RecipeEditorPage() {
 
           <div className="form-row mt-2">
             <div>
-              <label className="helper">Difficulty</label>
-              <select className="select mt-2" value={form.difficulty} onChange={e => setField('difficulty', e.target.value)}>
-                <option>Easy</option>
-                <option>Medium</option>
-                <option>Hard</option>
-              </select>
+              <label className="helper">Tags (comma separated)</label>
+              <input
+                className="input mt-2"
+                value={(form.tags || []).join(', ')}
+                onChange={e => setField('tags', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                placeholder="e.g., vegan, quick"
+              />
             </div>
             <div>
               <label className="helper">Image URL (optional)</label>

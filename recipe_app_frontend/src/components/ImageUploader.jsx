@@ -14,8 +14,8 @@ export default function ImageUploader({ value, onChange }) {
     setError(null);
     setUploading(true);
     try {
-      const res = await RecipeAPI.uploadImage(file); // expects {url}
-      onChange?.(res.url || res.location || res.path || '');
+      const res = await RecipeAPI.uploadImage(file); // normalized to { url }
+      onChange?.(res.url || '');
     } catch (err) {
       setError(err?.response?.data?.detail || 'Upload failed');
     } finally {
