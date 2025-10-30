@@ -41,6 +41,8 @@ api.interceptors.response.use(
 export const AuthAPI = {
   /** Login with credentials: {email, password} */
   async login(payload) {
+    // Backend expects OAuth2PasswordRequestForm by spec, but many FastAPI templates also accept JSON.
+    // We try JSON first; adjust backend if needed. Payload: { email, password }
     const { data } = await api.post('/auth/login', payload);
     return data;
   },
@@ -77,11 +79,11 @@ export const RecipeAPI = {
     const { data } = await api.post('/recipes', recipe);
     return data;
   },
-  /** Upload image file and get URL - placeholder to backend /media */
+  /** Upload image file and get URL using backend path /media/upload */
   async uploadImage(file) {
     const form = new FormData();
     form.append('file', file);
-    const { data } = await api.post('/media', form, {
+    const { data } = await api.post('/media/upload', form, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return data;
